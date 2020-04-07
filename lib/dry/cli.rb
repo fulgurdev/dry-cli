@@ -113,6 +113,7 @@ module Dry
       result.before_callbacks.run(command, args)
       command.call(**args)
       result.after_callbacks.run(command, args)
+      command
     end
 
     # Parse arguments for a command.
