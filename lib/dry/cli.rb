@@ -60,11 +60,11 @@ module Dry
     # @param err [IO] the error output (defaults to `$stderr`)
     #
     # @since 0.1.0
-    def call(arguments: ARGV, out: $stdout, err: $stderr)
+    def call(arguments: ARGV, out: $stdout, err: $stderr, meta: {})
       @out, @err = out, err
-      return perform_command(arguments) if kommand
+      return perform_command(arguments, meta) if kommand
 
-      perform_registry(arguments)
+      perform_registry(arguments, meta)
     end
 
     private
@@ -92,8 +92,8 @@ module Dry
     #
     # @since 0.6.0
     # @api private
-    def perform_command(arguments)
-      command, args = parse(kommand, arguments, [])
+    def perform_command(arguments, meta)
+      command, args = parse(kommand, arguments, [], meta)
       command.call(**args)
     end
 
@@ -104,11 +104,11 @@ module Dry
     #
     # @since 0.6.0
     # @api private
-    def perform_registry(arguments)
+    def perform_registry(arguments, meta)
       result = registry.get(arguments)
       return usage(result) unless result.found?
 
-      command, args = parse(result.command, result.arguments, result.names)
+      command, args = parse(result.command, result.arguments, result.names, meta)
 
       result.before_callbacks.run(command, args)
       command.call(**args)
@@ -128,10 +128,10 @@ module Dry
     #
     # @since 0.6.0
     # @api private
-    def parse(command, arguments, names)
+    def parse(command, arguments, names, meta)
       prog_name = ProgramName.call(names)
 
-      result = Parser.call(command, arguments, prog_name)
+      result = Parser.call(command, arguments, prog_name, meta)
 
       return help(command, prog_name) if result.help?
 

@@ -13,7 +13,7 @@ module Dry
       # @since 0.1.0
       # @api private
       #
-      def self.call(command, arguments, prog_name)
+      def self.call(command, arguments, prog_name, meta)
         original_arguments = arguments.dup
         parsed_options = {}
 
@@ -30,7 +30,7 @@ module Dry
         end.parse!(arguments)
 
         parsed_options = command.default_params.merge(parsed_options)
-        parse_required_params(command, arguments, prog_name, parsed_options)
+        parse_required_params(command, arguments, prog_name, parsed_options, meta)
       rescue ::OptionParser::ParseError
         Result.failure("ERROR: \"#{prog_name}\" was called with arguments \"#{original_arguments.join(' ')}\"") # rubocop:disable Metrics/LineLength
       end
@@ -39,7 +39,7 @@ module Dry
       # @api private
       #
       # rubocop:disable Metrics/AbcSize
-      def self.parse_required_params(command, arguments, prog_name, parsed_options)
+      def self.parse_required_params(command, arguments, prog_name, parsed_options, meta)
         parsed_params          = match_arguments(command.arguments, arguments)
         parsed_required_params = match_arguments(command.required_arguments, arguments)
         all_required_params_satisfied = command.required_arguments.all? { |param| !parsed_required_params[param.name].nil? } # rubocop:disable Metrics/LineLength
@@ -64,7 +64,9 @@ module Dry
 
         parsed_params.reject! { |_key, value| value.nil? }
         parsed_options = parsed_options.merge(parsed_params)
-        parsed_options = parsed_options.merge(args: unused_arguments) if unused_arguments.any?
+        parsed_options[:args] = {}
+        parsed_options[:args][:unused] = unused_arguments
+        parsed_options[:args][:meta] = meta
         Result.success(parsed_options)
       end
       # rubocop:enable Metrics/AbcSize
