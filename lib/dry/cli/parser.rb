@@ -15,6 +15,9 @@ module Dry
       #
       def self.call(command, arguments, prog_name, meta)
         original_arguments = arguments.dup
+
+        command_options, command_arguments = preprocess_arguments(arguments)
+
         parsed_options = {}
 
         OptionParser.new do |opts|
@@ -27,10 +30,10 @@ module Dry
           opts.on_tail('-h', '--help') do
             return Result.help
           end
-        end.parse!(arguments)
+        end.parse!(command_options)
 
         parsed_options = command.default_params.merge(parsed_options)
-        parse_required_params(command, arguments, prog_name, parsed_options, meta)
+        parse_required_params(command, command_arguments, prog_name, parsed_options, meta)
       rescue ::OptionParser::ParseError
         Result.failure("ERROR: \"#{prog_name}\" was called with arguments \"#{original_arguments.join(' ')}\"") # rubocop:disable Metrics/LineLength
       end
@@ -84,6 +87,21 @@ module Dry
         end
 
         result
+      end
+
+      def self.preprocess_arguments(arguments)
+        option_name_regexp = /--?[a-zA-z]+=?/
+
+        options_array = arguments.select.with_index do |argument, index|
+          argument.match(option_name_regexp) || (index != 0 && arguments[index - 1].match(option_name_regexp))
+        end
+
+        arguments_array = arguments.select.with_index do |argument, index|
+          !(argument.match(option_name_regexp) || (index != 0 && arguments[index - 1].match(option_name_regexp)))
+        end
+
+
+        [options_array, arguments_array]
       end
 
       # @since 0.1.0
