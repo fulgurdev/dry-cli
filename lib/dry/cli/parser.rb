@@ -21,7 +21,7 @@ module Dry
             array.push("--#{option.name}")
             array.push(option.options[:aliases])
           end
-        end.flatten
+        end.flatten.map { |option| option.gsub('_', '-') }
 
         command_options, command_arguments = preprocess_arguments(arguments, boolean_options: boolean_options)
 
@@ -102,13 +102,13 @@ module Dry
         options_array = arguments.select.with_index do |argument, index|
           argument.match(option_name_regexp) ||
             (index != 0 && arguments[index - 1].match(option_name_regexp) &&
-              !boolean_options.include?(arguments[index - 1]))
+              !boolean_options.any? { |option| arguments[index - 1].end_with?(option) })
         end
 
         arguments_array = arguments.select.with_index do |argument, index|
           !(argument.match(option_name_regexp) ||
             (index != 0 && arguments[index - 1].match(option_name_regexp) &&
-              !boolean_options.include?(arguments[index - 1])))
+              !boolean_options.any? { |option| arguments[index - 1].end_with?(option) }))
         end
 
 
