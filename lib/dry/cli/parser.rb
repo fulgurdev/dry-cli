@@ -16,7 +16,14 @@ module Dry
       def self.call(command, arguments, prog_name, meta)
         original_arguments = arguments.dup
 
-        command_options, command_arguments = preprocess_arguments(arguments)
+        boolean_options = command.options.each.with_object([]) do |option, array|
+          if option.options[:type] == :boolean
+            array.push("--#{option.name}")
+            array.push(option.options[:aliases])
+          end
+        end.flatten
+
+        command_options, command_arguments = preprocess_arguments(arguments, boolean_options: boolean_options)
 
         parsed_options = {}
 
@@ -89,15 +96,19 @@ module Dry
         result
       end
 
-      def self.preprocess_arguments(arguments)
+      def self.preprocess_arguments(arguments, boolean_options:)
         option_name_regexp = /--?[a-zA-z]+=?/
 
         options_array = arguments.select.with_index do |argument, index|
-          argument.match(option_name_regexp) || (index != 0 && arguments[index - 1].match(option_name_regexp))
+          argument.match(option_name_regexp) ||
+            (index != 0 && arguments[index - 1].match(option_name_regexp) &&
+              !boolean_options.include?(arguments[index - 1]))
         end
 
         arguments_array = arguments.select.with_index do |argument, index|
-          !(argument.match(option_name_regexp) || (index != 0 && arguments[index - 1].match(option_name_regexp)))
+          !(argument.match(option_name_regexp) ||
+            (index != 0 && arguments[index - 1].match(option_name_regexp) &&
+              !boolean_options.include?(arguments[index - 1])))
         end
 
 
